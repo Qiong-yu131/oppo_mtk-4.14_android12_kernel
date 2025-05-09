@@ -11,34 +11,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 克隆主仓库，默认只拉取最近一次提交 (fetch-depth: 1)
+      # 1. 克隆主仓库
       - name: Checkout main repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1           # 只获取一次提交，提高速度 :contentReference[oaicite:0]{index=0}
+          fetch-depth: 1
 
-      # 2. 克隆你的 Clang 工具链仓库到指定目录
+      # 2. 克隆自定义 Clang 工具链到 toolchains/clang
       - name: Checkout Clang toolchain
-        uses: actions/checkout@v4
-        with:
-          repository: Qiong-yu131/clang11   # 自定义仓库地址 :contentReference[oaicite:1]{index=1}
-          path: toolchains/clang           # 克隆到 toolchains/clang 子目录
-          fetch-depth: 1                   # 同样只拉取最新提交 :contentReference[oaicite:2]{index=2}
+        run: |
+          git clone --depth=1 https://github.com/Qiong-yu131/clang11.git toolchains/clang
 
-      # 3. 将 Clang 加入到 PATH，并设置 CC
+      # 3. 设置 Clang 环境变量
       - name: Setup Clang in PATH
         run: |
-          echo "$GITHUB_WORKSPACE/toolchains/clang/bin" >> $GITHUB_PATH
-          echo "CC=clang" >> $GITHUB_ENV    # 使用 Clang 编译 :contentReference[oaicite:3]{index=3}
+          echo "${GITHUB_WORKSPACE}/toolchains/clang/bin" >> $GITHUB_PATH
+          echo "CC=clang" >> $GITHUB_ENV
 
-      # 4. 切换到 kernel 目录并执行 b.sh 构建脚本
+      # 4. 切换到 kernel 目录并执行 b 脚本
       - name: Build kernel via b
-        working-directory: kernel          # 在 kernel 子目录下运行
+        working-directory: kernel
         run: |
           chmod +x b
           ./b
 
-      # 5. 上传构建产物，比如 boot.img、Image 等
+      # 5. 上传内核产物
       - name: Upload kernel artifacts
         uses: actions/upload-artifact@v4
         with:

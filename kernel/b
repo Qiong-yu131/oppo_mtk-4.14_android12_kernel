@@ -1,6 +1,6 @@
 #!/bin/bash
 export kk="$(pwd)"
-export CC_BIN="$kk/../clang11"
+export CC_BIN="$kk/clang11"
 export CLANG_PREBUILT_BIN="$CC_BIN/bin"
 export LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_A=$kk/clang11/aarch64-linux-android/bin
 export LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_B=$kk/clang11/arm-linux-androideabi-4.9/bin

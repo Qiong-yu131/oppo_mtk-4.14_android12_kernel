@@ -32,11 +32,11 @@ jobs:
           echo "CC=clang" >> $GITHUB_ENV    # 使用 Clang 编译 :contentReference[oaicite:3]{index=3}
 
       # 4. 切换到 kernel 目录并执行 b.sh 构建脚本
-      - name: Build kernel via b.sh
+      - name: Build kernel via b
         working-directory: kernel          # 在 kernel 子目录下运行
         run: |
           chmod +x b
-          ./b.sh
+          ./b
 
       # 5. 上传构建产物，比如 boot.img、Image 等
       - name: Upload kernel artifacts

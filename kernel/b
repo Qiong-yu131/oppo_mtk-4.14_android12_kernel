@@ -1,0 +1,25 @@
+#!/bin/bash
+export kk=$(pwd)
+export CC_BIN=$kk/clang11
+export CLANG_PREBUILT_BIN=$CC_BIN/bin
+export LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_A=$kk/clang11/aarch64-linux-android/bin
+export LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_B=$kk/clang11/arm-linux-androideabi-4.9/bin
+export STOP_SHIP_TRACEPRINTK=1
+export LD_LIBRARY_PATH=$CC_BIN/lib64:$$LD_LIBRARY_PATH
+export PATH=$CLANG_PREBUILT_BIN:$LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_A:$LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_B:$PATH
+export kk="-j$(nproc --all) \
+O=out \
+NM=llvm-nm \
+OBJCOPY=llvm-objcopy \
+ARCH=arm64 \
+BRANCH=android-4.14 \
+CC=clang \
+LD=ld.lld \
+CLANG_TRIPLE=aarch64-linux-gnu- \
+CROSS_COMPILE=aarch64-linux-androidkernel- \
+CROSS_COMPILE_COMPAT=arm-linux-androidkernel- \
+CROSS_COMPILE32=arm-linux-androidkernel- \
+CROSS_COMPILE_ARM32=arm-linux-androidkernel-"
+make $kk k6893v1_64_defconfig
+make $kk
+

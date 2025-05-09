@@ -19,10 +19,10 @@ jobs:
       working-directory: kernel
       run: |
         export kk="$(pwd)"
-        export CC_BIN="$kk/clang11"
+        export CC_BIN=$GITHUB_WORKSPACE/clang11
         export CLANG_PREBUILT_BIN="$CC_BIN/bin"
-        export LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_A="$kk/clang11/aarch64-linux-android/bin"
-        export LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_B="$kk/clang11/arm-linux-androideabi-4.9/bin"
+        export LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_A="$GITHUB_WORKSPACE/clang11//aarch64-linux-android/bin"
+        export LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_B="$GITHUB_WORKSPACE/clang11/arm-linux-androideabi-4.9/bin"
         export STOP_SHIP_TRACEPRINTK=1
         export LD_LIBRARY_PATH="$CC_BIN/lib64:$LD_LIBRARY_PATH"
         export PATH="$CLANG_PREBUILT_BIN:$LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_A:$LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_B:$PATH"

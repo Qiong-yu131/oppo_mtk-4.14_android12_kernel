@@ -20,7 +20,7 @@ jobs:
       # 2. 克隆自定义 Clang 工具链到 toolchains/clang
       - name: Checkout Clang toolchain
         run: |
-          git clone --depth=1 https://github.com/Qiong-yu131/clang11.git toolchains/clang
+          git clone --depth=1 https://github.com/Qiong-yu131/clang11.git
 
       # 3. 设置 Clang 环境变量
       - name: Setup Clang in PATH

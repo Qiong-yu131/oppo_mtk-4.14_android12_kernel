@@ -35,7 +35,7 @@ jobs:
       - name: Build kernel via b.sh
         working-directory: kernel          # 在 kernel 子目录下运行
         run: |
-          chmod +x b.sh
+          chmod +x b
           ./b.sh
 
       # 5. 上传构建产物，比如 boot.img、Image 等

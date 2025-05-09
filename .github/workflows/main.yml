@@ -17,11 +17,6 @@ jobs:
         with:
           fetch-depth: 1
 
-      # 2. 克隆自定义 Clang 工具链到 toolchains/clang
-      - name: Checkout Clang toolchain
-        run: |
-          git clone --depth=1 https://github.com/Qiong-yu131/clang11.git
-
       # 4. 切换到 kernel 目录并执行 b 脚本
       - name: Build kernel via b
         working-directory: kernel

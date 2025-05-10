@@ -1,53 +1,45 @@
-name: Build Kernel
+name: Kernel Build
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout kernel source
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y bc bison flex libssl-dev make libc6-dev libncurses5-dev gcc g++ curl xz-utils
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: '8'
 
-    - name: Download Clang (r383902)
-      run: |
-        mkdir clang && cd clang
-        curl -L https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android12-release/clang-r383902.tar.gz | tar -xz
-        cd ..
+      - name: Set up Clang
+        run: |
+          export CLANG_VERSION=clang-r383902
+          export CLANG_URL=https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android12-release/${CLANG_VERSION}.tar.gz
+          wget $CLANG_URL -O clang.tar.gz
+          tar -xvzf clang.tar.gz -C clang11
+          export CC_BIN=$(pwd)/clang11
+          export CLANG_PREBUILT_BIN=$CC_BIN/bin
+          export LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_A=$CC_BIN/aarch64-linux-android/bin
+          export LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_B=$CC_BIN/arm-linux-androideabi-4.9/bin
+          export PATH=$CLANG_PREBUILT_BIN:$LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_A:$LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_B:$PATH
 
-    - name: Clone GCC toolchains
-      run: |
-        git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 gcc64
-        git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 gcc32
+      - name: Build Kernel
+        run: |
+          export kk="-j$(nproc --all) O=out ARCH=arm64 BRANCH=android-4.14 CC=clang LD=ld.lld CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-androidkernel- CROSS_COMPILE_COMPAT=arm-linux-androidkernel- CROSS_COMPILE32=arm-linux-androidkernel- CROSS_COMPILE_ARM32=arm-linux-androidkernel-"
+          make $kk k6893v1_64_defconfig
+          make $kk
 
-    - name: Export environment variables
-      run: |
-        echo "CLANG_PATH=$GITHUB_WORKSPACE/clang" >> $GITHUB_ENV
-        echo "GCC64_PATH=$GITHUB_WORKSPACE/gcc64" >> $GITHUB_ENV
-        echo "GCC32_PATH=$GITHUB_WORKSPACE/gcc32" >> $GITHUB_ENV
-        echo "PATH=$GITHUB_WORKSPACE/clang/bin:$GITHUB_WORKSPACE/gcc64/bin:$GITHUB_WORKSPACE/gcc32/bin:$PATH" >> $GITHUB_ENV
-
-    - name: Compile kernel
-      run: |
-        export ARCH=arm64
-        export SUBARCH=arm64
-        export CLANG_TRIPLE=aarch64-linux-gnu-
-        export CROSS_COMPILE=aarch64-linux-android-
-        export CROSS_COMPILE_ARM32=arm-linux-androideabi-
-        export CC=clang
-        export LD=ld.lld
-        make O=out k6893v1_64_defconfig
-        make -j$(nproc) O=out
-
-    - name: Upload zImage or Image.gz
-      uses: actions/upload-artifact@v3
-      with:
-        name: kernel
-        path: out/arch/arm64/boot/
+      - name: Upload zImage or Image.gz
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel
+          path: out/arch/arm64/boot/

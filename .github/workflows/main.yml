@@ -14,49 +14,53 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Install dependencies
-      run: sudo apt update && sudo apt install -y bc bison build-essential cpio curl flex gcc libssl-dev libelf-dev libncurses5-dev libncursesw5-dev xz-utils
-
-    - name: Download and extract Clang r383902
       run: |
-        mkdir -p kernel/clang-r383902
-        wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android12-release/clang-r383902.tar.gz -O clang-r383902.tar.gz
-        tar -xzf clang-r383902.tar.gz -C kernel/clang-r383902
+        sudo apt-get update
+        sudo apt-get install -y bc bison flex libssl-dev libelf-dev \
+          build-essential ccache curl git python3 unzip wget
 
-    - name: Setup environment and build
+    - name: Clone Clang (LLVM)
       run: |
-        export CLANG_PATH=$(pwd)/kernel/clang-r383902
-        export PATH=$CLANG_PATH/bin:$PATH
-        export LD_LIBRARY_PATH=$CLANG_PATH/lib64:$LD_LIBRARY_PATH
-        export LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_A=$CLANG_PATH/aarch64-linux-android/bin
-        export LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_B=$CLANG_PATH/arm-linux-androideabi-4.9/bin
-        export PATH=$LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_A:$LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_B:$PATH
+        git clone --depth=1 https://github.com/ClangBuiltLinux/tc-build.git
+        mkdir clang
+        python3 tc-build/tc-build.py \
+          --cc clang \
+          --targets arm64 \
+          --install-folder clang
 
-        cd kernel
-        make -j$(nproc) \
-          O=out \
-          NM=llvm-nm \
-          OBJCOPY=llvm-objcopy \
-          ARCH=arm64 \
-          BRANCH=android-4.14 \
+    - name: Clone GCC 64-bit (aarch64-linux-android-4.9)
+      run: |
+        git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9.git gcc64
+
+    - name: Clone GCC 32-bit (arm-linux-androideabi-4.9)
+      run: |
+        git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9.git gcc32
+
+    - name: Build Kernel
+      run: |
+        export PATH="$GITHUB_WORKSPACE/clang/bin:$GITHUB_WORKSPACE/gcc64/bin:$GITHUB_WORKSPACE/gcc32/bin:$PATH"
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export CLANG_TRIPLE=aarch64-linux-gnu-
+        export CROSS_COMPILE=aarch64-linux-android-
+        export CROSS_COMPILE_ARM32=arm-linux-androideabi-
+
+        make O=out k6893v1_64_defconfig
+        make -j$(nproc) O=out \
           CC=clang \
           LD=ld.lld \
-          CLANG_TRIPLE=aarch64-linux-gnu- \
-          CROSS_COMPILE=aarch64-linux-androidkernel- \
-          CROSS_COMPILE_COMPAT=arm-linux-androidkernel- \
-          CROSS_COMPILE32=arm-linux-androidkernel- \
-          CROSS_COMPILE_ARM32=arm-linux-androidkernel- \
-          k6893v1_64_defconfig
-
-        make -j$(nproc) \
-          O=out \
           NM=llvm-nm \
+          AR=llvm-ar \
+          AS=llvm-as \
           OBJCOPY=llvm-objcopy \
-          ARCH=arm64 \
-          BRANCH=android-4.14 \
-          CC=clang \
-          LD=ld.lld \
-          CLANG_TRIPLE=aarch64-linux-gnu- \
-          CROSS_COMPILE=aarch64-linux-androidkernel- \
-          CROSS_COMPILE_COMPAT=arm-linux-androidkernel- \
-          CROSS_COMPILE32=arm-linux-androidkernel- \
-          CROSS_COMPILE_ARM32=arm-linux-androidkernel-
+          OBJDUMP=llvm-objdump \
+          STRIP=llvm-strip \
+          CROSS_COMPILE=aarch64-linux-android- \
+          CROSS_COMPILE_ARM32=arm-linux-androideabi- \
+          CLANG_TRIPLE=aarch64-linux-gnu-
+
+    - name: Upload Image
+      uses: actions/upload-artifact@v3
+      with:
+        name: kernel-image
+        path: out/arch/arm64/boot/Image.gz-dtb

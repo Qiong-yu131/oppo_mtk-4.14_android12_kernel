@@ -8,53 +8,55 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: kernel
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout kernel source
+      uses: actions/checkout@v3
 
-      - name: Set up environment variables
-        run: |
-          echo "CC_BIN=${{ github.workspace }}/kernel/clang11" >> $GITHUB_ENV
-          echo "CLANG_PREBUILT_BIN=${{ github.workspace }}/kernel/clang11/bin" >> $GITHUB_ENV
-          echo "LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_A=${{ github.workspace }}/kernel/clang11/aarch64-linux-android/bin" >> $GITHUB_ENV
-          echo "LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_B=${{ github.workspace }}/kernel/clang11/arm-linux-androideabi-4.9/bin" >> $GITHUB_ENV
-          echo "STOP_SHIP_TRACEPRINTK=1" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=${{ github.workspace }}/kernel/clang11/lib64:\$LD_LIBRARY_PATH" >> $GITHUB_ENV
-          echo "${{ github.workspace }}/kernel/clang11/bin" >> $GITHUB_PATH
-          echo "${{ github.workspace }}/kernel/clang11/aarch64-linux-android/bin" >> $GITHUB_PATH
-          echo "${{ github.workspace }}/kernel/clang11/arm-linux-androideabi-4.9/bin" >> $GITHUB_PATH
+    - name: Install dependencies
+      run: sudo apt update && sudo apt install -y bc bison build-essential cpio curl flex gcc libssl-dev libelf-dev libncurses5-dev libncursesw5-dev xz-utils
 
-      - name: Build kernel
-        run: |
-          make -j$(nproc --all) \
-            O=out \
-            NM=llvm-nm \
-            OBJCOPY=llvm-objcopy \
-            ARCH=arm64 \
-            BRANCH=android-4.14 \
-            CC=clang \
-            LD=ld.lld \
-            CLANG_TRIPLE=aarch64-linux-gnu- \
-            CROSS_COMPILE=aarch64-linux-androidkernel- \
-            CROSS_COMPILE_COMPAT=arm-linux-androidkernel- \
-            CROSS_COMPILE32=arm-linux-androidkernel- \
-            CROSS_COMPILE_ARM32=arm-linux-androidkernel- \
-            k6893v1_64_defconfig
+    - name: Download and extract Clang r383902
+      run: |
+        mkdir -p kernel/clang-r383902
+        wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android12-release/clang-r383902.tar.gz -O clang-r383902.tar.gz
+        tar -xzf clang-r383902.tar.gz -C kernel/clang-r383902
 
-          make -j$(nproc --all) \
-            O=out \
-            NM=llvm-nm \
-            OBJCOPY=llvm-objcopy \
-            ARCH=arm64 \
-            BRANCH=android-4.14 \
-            CC=clang \
-            LD=ld.lld \
-            CLANG_TRIPLE=aarch64-linux-gnu- \
-            CROSS_COMPILE=aarch64-linux-androidkernel- \
-            CROSS_COMPILE_COMPAT=arm-linux-androidkernel- \
-            CROSS_COMPILE32=arm-linux-androidkernel- \
-            CROSS_COMPILE_ARM32=arm-linux-androidkernel-
+    - name: Setup environment and build
+      run: |
+        export CLANG_PATH=$(pwd)/kernel/clang-r383902
+        export PATH=$CLANG_PATH/bin:$PATH
+        export LD_LIBRARY_PATH=$CLANG_PATH/lib64:$LD_LIBRARY_PATH
+        export LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_A=$CLANG_PATH/aarch64-linux-android/bin
+        export LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_B=$CLANG_PATH/arm-linux-androideabi-4.9/bin
+        export PATH=$LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_A:$LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN_B:$PATH
+
+        cd kernel
+        make -j$(nproc) \
+          O=out \
+          NM=llvm-nm \
+          OBJCOPY=llvm-objcopy \
+          ARCH=arm64 \
+          BRANCH=android-4.14 \
+          CC=clang \
+          LD=ld.lld \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=aarch64-linux-androidkernel- \
+          CROSS_COMPILE_COMPAT=arm-linux-androidkernel- \
+          CROSS_COMPILE32=arm-linux-androidkernel- \
+          CROSS_COMPILE_ARM32=arm-linux-androidkernel- \
+          k6893v1_64_defconfig
+
+        make -j$(nproc) \
+          O=out \
+          NM=llvm-nm \
+          OBJCOPY=llvm-objcopy \
+          ARCH=arm64 \
+          BRANCH=android-4.14 \
+          CC=clang \
+          LD=ld.lld \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=aarch64-linux-androidkernel- \
+          CROSS_COMPILE_COMPAT=arm-linux-androidkernel- \
+          CROSS_COMPILE32=arm-linux-androidkernel- \
+          CROSS_COMPILE_ARM32=arm-linux-androidkernel-

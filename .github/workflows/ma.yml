@@ -43,6 +43,7 @@ jobs:
           export CROSS_COMPILE=aarch64-linux-android-
           export CROSS_COMPILE_ARM32=arm-linux-androideabi-
           export CLANG_TRIPLE=aarch64-linux-gnu-
+          cd kernel
 
           make O=out k6893v1_64_defconfig
           make -j$(nproc) O=out

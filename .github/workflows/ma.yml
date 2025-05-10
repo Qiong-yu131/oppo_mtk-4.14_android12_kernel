@@ -48,9 +48,32 @@ jobs:
           export NM=llvm-nm
           export OBJCOPY=llvm-objcopy
           cd kernel
+          sudo apt update -y
+          apt install bc \
+            binutils-dev \
+            bison \
+            build-essential \
+            ca-certificates \
+            ccache \
+            clang \
+            cmake \
+            curl \
+            file \
+            flex \
+            git \
+            libelf-dev \
+            libssl-dev \
+            lld \
+            make \
+            ninja-build \
+            python3-dev \
+            texinfo \
+            u-boot-tools \
+            xz-utils \
+            zlib1g-dev -y
 
-          make O=out k6893v1_64_defconfig
-          make -j$(nproc) O=out
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-android- CROSS_COMPILE_ARM32=arm-linux-androideabi- CLANG_TRIPLE=aarch64-linux-gnu- CC=clang LD=ld.lld NM=llvm-nm OBJCOPY=llvm-objcopy O=out k6893v1_64_defconfig
+          make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-android- CROSS_COMPILE_ARM32=arm-linux-androideabi- CLANG_TRIPLE=aarch64-linux-gnu- CC=clang LD=ld.lld NM=llvm-nm OBJCOPY=llvm-objcopy O=out
 
       - name: Upload Kernel Image
         uses: actions/upload-artifact@v4
